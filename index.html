@@ -82,6 +82,8 @@
       <input type="color" id="starColor" value="#ffffff"></div>
     <div class="control-item"><label>Volume</label>
       <input type="range" id="volumeI" min="0" max="1" step="0.01" value="0.5"></div>
+    <div class="control-item"><label>Vibración (guitarra, mano, void)</label>
+      <input type="range" id="vibI" min="0" max="1" step="0.01" value="1"></div>
     <div class="toggles">
       <label><input type="checkbox" id="posterize"> Posterize</label>
       <label><input type="checkbox" id="blur"> Blur</label>
@@ -98,6 +100,18 @@
 // const ASSET_BASE = "https://tuusuario.github.io/mi-proyecto/";
 const ASSET_BASE = "";
 // =======================================
+
+// Velocidad de la vibración: más bajo = más lenta y suave (antes era brusca, ~1.0)
+const VIB_SPEED = 0.03;
+let vibAmp = 1; // intensidad, la controla el slider del panel
+
+// Movimiento suave (ruido Perlin) entre a y b. "seed" separa cada valor.
+function vib(seed, a, b) {
+  const n = constrain(noise(frameCount * VIB_SPEED, seed * 10.7), 0.2, 0.8);
+  const raw = map(n, 0.2, 0.8, a, b);
+  const c = (a + b) / 2;
+  return c + (raw - c) * vibAmp;
+}
 
 let audioReady = false;
 let setupDone = false;
@@ -451,15 +465,15 @@ function draw() {
         image(
           guitar,
           0, 0,
-          random(width - 30, width),
-          random(height - 30, height)
+          vib(1, width - 30, width),
+          vib(2, height - 30, height)
         );
 
         image(
           hand,
           mouseX - 25, mouseY - 31,
-          random(230, 252),
-          random(370, 391)
+          vib(3, 230, 252),
+          vib(4, 370, 391)
         );
 
         filters();
@@ -733,10 +747,10 @@ function draw() {
 
       image(
         silhouette,
-        random(-30 - width / 2, -width / 2),
-        random(-30 - height / 2, -height / 2),
-        random(width - 50, width),
-        random(height - 50, height)
+        vib(5, -30 - width / 2, -width / 2),
+        vib(6, -30 - height / 2, -height / 2),
+        vib(7, width - 50, width),
+        vib(8, height - 50, height)
       );
 
       filters();
@@ -773,7 +787,7 @@ function keyPressed() {
 
 let ctl = {};
 function cacheControls() {
-  ["bgColor","visColor","starColor","volumeI","posterize","blur","negative"]
+  ["bgColor","visColor","starColor","volumeI","vibI","posterize","blur","negative"]
     .forEach(id => ctl[id] = document.getElementById(id));
 }
 
@@ -783,6 +797,7 @@ function leerControles() {
   starColor = color(ctl.starColor.value);
 
   volumeI = parseFloat(ctl.volumeI.value);
+  vibAmp = parseFloat(ctl.vibI.value);
 
   posterize = ctl.posterize.checked;
   blur = ctl.blur.checked;
