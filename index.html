@@ -101,16 +101,24 @@
 const ASSET_BASE = "";
 // =======================================
 
-// Velocidad de la vibración: más bajo = más lenta y suave (antes era brusca, ~1.0)
-const VIB_SPEED = 0.03;
-console.log("PF: versión con vibración suave cargada");
-const smoothSizes = [];
-let vibAmp = 1; // intensidad, la controla el slider del panel
+// Cada valor aleatorio se mantiene VIB_HOLD fotogramas antes de cambiar
+// (el original cambiaba en cada fotograma = 1). Sube el número para vibrar más lento.
+const VIB_HOLD = 5;
+console.log("PF: vibración aleatoria cada " + VIB_HOLD + " fotogramas");
+let vibAmp = 1; // 1 = rango original; lo controla el slider del panel
 
-// Movimiento suave (ruido Perlin) entre a y b. "seed" separa cada valor.
+// Número pseudoaleatorio estable durante VIB_HOLD fotogramas, en [0,1)
+function hr(seed, k) {
+  let x = (Math.floor(frameCount / VIB_HOLD) * 374761393 + seed * 668265263 + k * 1274126177) | 0;
+  x = Math.imul(x ^ (x >>> 15), 2246822519);
+  x = Math.imul(x ^ (x >>> 13), 3266489917);
+  x ^= x >>> 16;
+  return (x >>> 0) / 4294967296;
+}
+
+// Equivale a random(a, b) pero cambia solo cada VIB_HOLD fotogramas
 function vib(seed, a, b, k = 0) {
-  const n = constrain(noise(frameCount * VIB_SPEED, seed * 10.7, k * 0.7), 0.2, 0.8);
-  const raw = map(n, 0.2, 0.8, a, b);
+  const raw = a + (b - a) * hr(seed, k);
   const c = (a + b) / 2;
   return c + (raw - c) * vibAmp;
 }
@@ -456,14 +464,10 @@ function draw() {
         songInst.amp(volumeI);
 
         for (let i = 0; i < bands; i++) {
-          let target = map(spectrum[i], 0, 255, 400, 2000);
-          if (smoothSizes[i] === undefined) smoothSizes[i] = target;
-          smoothSizes[i] = lerp(smoothSizes[i], target, 0.15);
-          let ellipseSize = smoothSizes[i];
+          let ellipseSize = map(spectrum[i], 0, 255, 400, 2000);
 
-          let red = vib(20 + i, 0, 255);
-          fill(red, 0, 0);
-          stroke(red, 0, 0);
+          fill(vib(20 + i, 0, 255), 0, 0);
+          stroke(vib(220 + i, 0, 255), 0, 0);
 
           ellipse(width / 2, height / 2, ellipseSize, ellipseSize);
         }
@@ -720,7 +724,7 @@ function draw() {
         );
 
         let k = 0;
-        for (let a = 0; a < TWO_PI; a += PI / vib(90 + i, 0.05, 5, k++)) {
+        for (let a = 0; a < TWO_PI; a += PI / vib(90 + i, 0, 5, k++)) {
           let x1 = cos(a + angle) * radius;
           let y1 = sin(a + angle) * radius;
 
