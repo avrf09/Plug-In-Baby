@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PF</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/addons/p5.sound.min.js"></script>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+  }
+
+  #controlFrame {
+    position: fixed;
+    top: 200px;
+    left: 200px;
+    width: 780px;
+    height: 380px;
+    background: #000;
+    border: 1px solid #444;
+    z-index: 999;
+    padding: 10px;
+    box-sizing: border-box;
+    color: #fff;
+    font-family: Arial, sans-serif;
+  }
+
+  .control-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+  }
+
+  .control-item {
+    width: 220px;
+  }
+
+  input[type="color"] {
+    width: 100%;
+    height: 35px;
+    border: none;
+    background: none;
+  }
+
+  input[type="range"] {
+    width: 200px;
+  }
+
+  .toggle {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    margin-right: 20px;
+    text-align: center;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="controlFrame">
+  <div class="control-row">
+    <div class="control-item">
+      BG Color<br>
+      <input type="color" id="bgColor" value="#000000">
+    </div>
+
+    <div class="control-item">
+      Visualizer stars Color<br>
+      <input type="color" id="visColor" value="#ffffff">
+    </div>
+
+    <div class="control-item">
+      Stars Void Color<br>
+      <input type="color" id="starColor" value="#ffffff">
+    </div>
+  </div>
+
+  <div class="control-row">
+    <div class="control-item">
+      Volume<br>
+      <input type="range" id="volumeI" min="0" max="1" step="0.01" value="0.5">
+    </div>
+  </div>
+
+  <div class="control-row">
+    <label class="toggle">
+      Posterize<br>
+      <input type="checkbox" id="posterize">
+    </label>
+
+    <label class="toggle">
+      Blur<br>
+      <input type="checkbox" id="blur">
+    </label>
+
+    <label class="toggle">
+      Negative<br>
+      <input type="checkbox" id="negative">
+    </label>
+  </div>
+</div>
+
+<script>
+let bgColor;
+let starColor;
+let visColor;
+
+let posterize = false;
+let blur = false;
+let negative = false;
+
+let volumeI = 0.5;
+
+let pluged = false;
+let start = false;
+let time = 0;
+
+let isPlaying = false;
+
+let altavoz;
+let altavoz2;
+let plug;
+
+let guitar;
+let hand;
+
+let tv1;
+let tv2;
+let tv3;
+let tv4;
+let tv5;
+
+let lyrics1;
+let lyrics2;
+let lyrics3;
+let lyrics4;
+let lyrics5;
+let lyrics6;
+
+let tv_bg1;
+let tv_bg2;
+
+let efecto = [];
+let currentFrame = 0;
+
+let portada;
+let portada2;
+
+let tw1;
+let tw1_2;
+let tw1_3;
+
+let tw2;
+let tw3;
+let tw4;
+let tw5;
+
+let tw2_2;
+let tw3_2;
+let tw4_2;
+let tw5_2;
+
+let crucificar = [];
+
+let indiceCruz = 0;
+let maxEnter = 8;
+let canEnter = false;
+
+let silhouette;
+let silhouette2;
+let silhouette3;
+let alpha;
+
+let songInst;
+let songVocal;
+let fft;
+
+let bands = 64;
+let spectrum = [];
+
+let numberOfStars = 20000;
+let newStars = 50;
+let starArray = [];
+
+let w2;
+let h2;
+let d2;
+
+let numCircles = 20;
+let maxRadius;
+let radii = [];
+let angles = [];
+let speeds = [];
+
+let numStars = 2500;
+let starAngles = [];
+let starRadii = [];
+
+class star {
+  constructor() {
+    this.x = random(width);
+    this.y = random(height);
+    this.speed = random(0.2, 5);
+    this.wachsen = int(random(0, 2));
+
+    if (this.wachsen == 1) {
+      this.d = 0;
+    } else {
+      this.d = random(0.2, 3);
+    }
+
+    this.age = 0;
+    this.sizeIncr = random(0, 0.03);
+  }
+
+  render() {
+    this.age++;
+
+    if (this.age < 200) {
+      if (this.wachsen == 1) {
+        this.d += this.sizeIncr;
+
+        if (this.d > 3 || this.d < -3) {
+          this.d = 3;
+        }
+      } else {
+        if (this.d > 3 || this.d < -3) {
+          this.d = 3;
+        }
+
+        this.d = this.d + 0.2 - 0.6 * noise(this.x, this.y, frameCount);
+      }
+    } else {
+      if (this.d > 3 || this.d < -3) {
+        this.d = 3;
+      }
+    }
+
+    let size = this.d * map(
+      noise(this.x, this.y, 0.001 * frameCount),
+      0, 1, 0.2, 1.5
+    );
+
+    ellipse(this.x, this.y, size, size);
+  }
+
+  move() {
+    this.x = this.x - map(
+      1920, 0, width,
+      -0.05 * this.speed, 0.05 * this.speed
+    ) * (w2 - this.x);
+
+    this.y = this.y - map(
+      mouseY + 750, 0, height,
+      -0.05 * this.speed, 0.05 * this.speed
+    ) * (h2 - this.y);
+  }
+}
+
+function preload() {
+  altavoz = loadImage("altavoz.png");
+  altavoz2 = loadImage("altavoz2.png");
+  plug = loadImage("plug.png");
+
+  guitar = loadImage("guitar.png");
+  hand = loadImage("hand.png");
+
+  tv1 = loadImage("lyrics_lies.png");
+  tv2 = loadImage("lyrics_underneath.png");
+  tv3 = loadImage("lyrics_changing.png");
+  tv4 = loadImage("lyrics_cleansing.png");
+  tv5 = loadImage("lyrics_forget.png");
+
+  tv_bg1 = loadImage("lyrics_bg0.png");
+  tv_bg2 = loadImage("lyrics_bg1.png");
+
+  efecto[0] = loadImage("lyrics_bg0.png");
+  efecto[1] = loadImage("lyrics_bg1.png");
+  efecto[2] = loadImage("lyrics_bg2.png");
+  efecto[3] = loadImage("lyrics_bg3.png");
+
+  lyrics1 = loadImage("lyrics_confuse.png");
+  lyrics2 = loadImage("lyrics_lose.png");
+  lyrics3 = loadImage("lyrics_game.png");
+  lyrics4 = loadImage("lyrics_change.png");
+  lyrics5 = loadImage("lyrics_replace.png");
+  lyrics6 = loadImage("lyrics_forget2.png");
+
+  portada = loadImage("portada.png");
+  portada2 = loadImage("portada2.png");
+
+  tw1 = loadImage("lyrics_plug.png");
+  tw1_2 = loadImage("lyrics_plug.png");
+  tw1_3 = loadImage("lyrics_plug.png");
+
+  tw2 = loadImage("lyrics_crucifies.png");
+  tw3 = loadImage("lyrics_tired.png");
+  tw4 = loadImage("lyrics_unbroken.png");
+  tw5 = loadImage("lyrics_living.png");
+
+  tw2_2 = loadImage("lyrics_crucifies.png");
+  tw3_2 = loadImage("lyrics_tired.png");
+  tw4_2 = loadImage("lyrics_unbroken.png");
+  tw5_2 = loadImage("lyrics_living.png");
+
+  for (let i = 0; i < 8; i++) {
+    crucificar[i] = loadImage("cristo" + i + ".png");
+  }
+
+  silhouette = loadImage("silhouette.png");
+  silhouette2 = loadImage("silhouette2.png");
+  silhouette3 = loadImage("silhouette3.png");
+  alpha = loadImage("alpha.png");
+
+  soundFormats("mp3");
+  songInst = loadSound("plugInBaby.mp3");
+  songVocal = loadSound("PIB_Voice.mp3");
+}
+
+function setup() {
+  createCanvas(1920, 1080);
+  noStroke();
+
+  bgColor = color(0, 0, 0, 255);
+  visColor = color(255, 255, 255, 255);
+  starColor = color(255, 255, 255, 255);
+
+  for (let i = 0; i < bands; i++) {
+    spectrum[i] = 0;
+  }
+
+  fft = new p5.FFT(0.9, bands);
+
+  w2 = width / 2;
+  h2 = height / 2;
+  d2 = dist(0, 0, w2, h2);
+
+  starArray.push(new star());
+
+  maxRadius = width / 2;
+
+  for (let i = 0; i < numCircles; i++) {
+    radii[i] = map(i, 0, numCircles - 1, 50, maxRadius);
+    angles[i] = random(TWO_PI);
+    speeds[i] = map(i, 0, numCircles - 1, 0.005, 0.005);
+  }
+
+  for (let i = 0; i < numStars; i++) {
+    starAngles[i] = random(TWO_PI);
+    starRadii[i] = random(100, width);
+  }
+}
+
+function draw() {
+  leerControles();
+
+  background(bgColor);
+  image(altavoz, 0, 0, width, height);
+  filters();
+
+  if (pluged == false) {
+    strokeWeight(5);
+    stroke(255);
+    line(1200, 725, mouseX, mouseY);
+
+    image(plug, mouseX - 25, mouseY - 31, 51, 52);
+    filters();
+
+    if (
+      1350 >= mouseX && mouseX >= 1250 &&
+      620 >= mouseY && mouseY >= 520
+    ) {
+      background(bgColor);
+      image(altavoz2, 0, 0, width, height);
+
+      pluged = true;
+      time = millis();
+
+      filters();
+    }
+  }
+
+  if (pluged == true) {
+    background(bgColor);
+    image(altavoz2, 0, 0, width, height);
+    filters();
+
+    if (start == false) {
+      songInst.play();
+      songInst.amp(volumeI);
+      start = true;
+    }
+  }
+
+  if (start) {
+    songInst.amp(volumeI);
+
+    if (millis() - time > 5200) {
+      background(bgColor);
+      isPlaying = true;
+
+      image(guitar, 0, 0, width, height);
+      image(hand, mouseX - 25, mouseY - 31, 252, 391);
+      filters();
+
+      if (
+        1400 >= mouseX && mouseX >= 900 &&
+        700 >= mouseY && mouseY >= 200 &&
+        isPlaying == true
+      ) {
+        spectrum = fft.analyze();
+
+        background(bgColor);
+        songInst.amp(volumeI);
+
+        for (let i = 0; i < bands; i++) {
+          let ellipseSize = map(spectrum[i], 0, 255, 400, 2000);
+
+          fill(random(0, 255), 0, 0);
+          stroke(random(0, 255), 0, 0);
+
+          ellipse(width / 2, height / 2, ellipseSize, ellipseSize);
+        }
+
+        image(
+          guitar,
+          0, 0,
+          random(width - 30, width),
+          random(height - 30, height)
+        );
+
+        image(
+          hand,
+          mouseX - 25, mouseY - 31,
+          random(230, 252),
+          random(370, 391)
+        );
+
+        filters();
+      }
+    }
+
+    if (millis() - time > 32000) {
+      isPlaying = false;
+
+      image(efecto[currentFrame], 0, 0);
+      filters();
+
+      if (frameCount % 5 == 0) {
+        currentFrame = (currentFrame + 1) % efecto.length;
+      }
+
+      image(tv1, 0, 0, width, height);
+      filters();
+
+      if (millis() - time > 38500) {
+        image(tv2, 0, 0, width, height);
+        filters();
+      }
+
+      if (millis() - time > 43000) {
+        image(tv3, 0, 0, width, height);
+        filters();
+      }
+
+      if (millis() - time > 49000) {
+        image(tv4, 0, 0, width, height);
+        filters();
+      }
+
+      if (millis() - time > 53000) {
+        image(tv5, 0, 0, width, height);
+        filters();
+      }
+    }
+
+    if (millis() - time > 62000) {
+      background(bgColor);
+
+      fill(
+        255,
+        map(dist(mouseX, mouseY, w2, h2), 0, d2, 255, -10)
+      );
+
+      stroke(visColor);
+
+      starArray[0].render();
+
+      for (let i = 0; i < newStars; i++) {
+        starArray.push(new star());
+      }
+
+      for (let i = starArray.length - 1; i >= 0; i--) {
+        if (
+          starArray[i].x < 0 ||
+          starArray[i].x > width ||
+          starArray[i].y < 0 ||
+          starArray[i].y > height
+        ) {
+          starArray.splice(i, 1);
+        } else {
+          starArray[i].move();
+          starArray[i].render();
+        }
+      }
+
+      if (starArray.length > numberOfStars) {
+        for (let i = 0; i < newStars; i++) {
+          starArray.splice(0, 1);
+        }
+      }
+
+      fill(255);
+
+      image(portada, 0, 0, width, height);
+      image(tw1, 0, 0, width, height);
+
+      canEnter = true;
+      filters();
+
+      for (let i = 0; i < indiceCruz && -1 < indiceCruz; i++) {
+        image(crucificar[i], 0, 0, width, height);
+        filters();
+      }
+
+      if (millis() - time > 67000) {
+        tw1 = tw2;
+        filters();
+      }
+
+      if (millis() - time > 70000) {
+        tw1 = tw3;
+        filters();
+      }
+
+      if (millis() - time > 77000) {
+        tw1 = tw1_2;
+        filters();
+      }
+
+      if (millis() - time > 81000) {
+        tw1 = tw4;
+        filters();
+      }
+
+      if (millis() - time > 84500) {
+        tw1 = tw5;
+        filters();
+      }
+    }
+
+    filters();
+
+    if (millis() - time > 106500) {
+      background(bgColor);
+      image(efecto[currentFrame], 0, 0);
+
+      if (frameCount % 5 == 0) {
+        currentFrame = (currentFrame + 1) % efecto.length;
+      }
+
+      image(lyrics1, 0, 0, width, height);
+      filters();
+
+      if (millis() - time > 110000) {
+        image(lyrics2, 0, 0, width, height);
+        filters();
+      }
+
+      if (millis() - time > 114000) {
+        image(lyrics3, 0, 0, width, height);
+        filters();
+      }
+
+      if (millis() - time > 120000) {
+        image(lyrics4, 0, 0, width, height);
+        filters();
+      }
+
+      if (millis() - time > 124000) {
+        image(lyrics5, 0, 0, width, height);
+        filters();
+      }
+
+      if (millis() - time > 127500) {
+        background(bgColor);
+        image(lyrics6, 0, 0, width, height);
+        filters();
+      }
+    }
+
+    if (millis() - time > 136500) {
+      background(bgColor);
+
+      fill(
+        255,
+        map(dist(mouseX, mouseY, w2, h2), 0, d2, 255, -10)
+      );
+
+      stroke(visColor);
+
+      starArray[0].render();
+
+      for (let i = 0; i < newStars; i++) {
+        starArray.push(new star());
+      }
+
+      for (let i = starArray.length - 1; i >= 0; i--) {
+        if (
+          starArray[i].x < 0 ||
+          starArray[i].x > width ||
+          starArray[i].y < 0 ||
+          starArray[i].y > height
+        ) {
+          starArray.splice(i, 1);
+        } else {
+          starArray[i].move();
+          starArray[i].render();
+        }
+      }
+
+      if (starArray.length > numberOfStars) {
+        for (let i = 0; i < newStars; i++) {
+          starArray.splice(0, 1);
+        }
+      }
+
+      fill(visColor);
+
+      image(portada2, 0, 0, width, height);
+      image(tw1_2, 0, 0, width, height);
+
+      filters();
+
+      if (millis() - time > 141500) {
+        tw1_2 = tw2_2;
+        filters();
+      }
+
+      if (millis() - time > 145000) {
+        tw1_2 = tw3_2;
+        filters();
+      }
+
+      if (millis() - time > 151000) {
+        tw1_2 = tw1_3;
+        filters();
+      }
+
+      if (millis() - time > 156500) {
+        tw1_2 = tw4_2;
+        filters();
+      }
+
+      if (millis() - time > 159000) {
+        tw1_2 = tw5_2;
+        filters();
+      }
+    }
+
+    if (millis() - time > 165000) {
+      background(bgColor);
+      translate(width / 2, height / 2);
+
+      for (let i = 0; i < numCircles; i++) {
+        let radius = radii[i];
+        let angle = angles[i];
+
+        stroke(255, random(0, 100));
+        noFill();
+
+        strokeWeight(
+          map(i, 0, numCircles - 1, random(0.1, 3), 1)
+        );
+
+        for (let a = 0; a < TWO_PI; a += PI / random(0, 5)) {
+          let x1 = cos(a + angle) * radius;
+          let y1 = sin(a + angle) * radius;
+
+          let x2 = cos(a + angle + PI / 30) * radius;
+          let y2 = sin(a + angle + PI / 30) * radius;
+
+          line(x1, y1, x2, y2);
+        }
+
+        angles[i] += speeds[i];
+      }
+
+      stroke(starColor);
+      fill(starColor);
+
+      for (let i = 0; i < numStars; i++) {
+        let xStar = cos(starAngles[i]) * starRadii[i];
+        let yStar = sin(starAngles[i]) * starRadii[i];
+
+        circle(xStar, yStar, random(0.1, 0.5));
+
+        starAngles[i] += 0.0025;
+
+        if (starAngles[i] > TWO_PI) {
+          starAngles[i] -= TWO_PI;
+        }
+      }
+
+      fill(0);
+      ellipse(0, 0, 100, 100);
+
+      image(
+        silhouette,
+        random(-30 - width / 2, -width / 2),
+        random(-30 - height / 2, -height / 2),
+        random(width - 50, width),
+        random(height - 50, height)
+      );
+
+      filters();
+
+      if (millis() - time > 185000) {
+        silhouette = silhouette2;
+        filters();
+      }
+
+      if (millis() - time > 192000) {
+        silhouette = silhouette3;
+        filters();
+      }
+
+      if (millis() - time > 199000) {
+        silhouette = alpha;
+        filters();
+      }
+    }
+
+    filters();
+  }
+
+  filters();
+}
+
+function keyPressed() {
+  if (canEnter == true) {
+    if ((keyCode === ENTER || key === "Enter") && indiceCruz < maxEnter) {
+      indiceCruz++;
+    }
+  }
+}
+
+function leerControles() {
+  bgColor = color(select("#bgColor").value());
+  visColor = color(select("#visColor").value());
+  starColor = color(select("#starColor").value());
+
+  volumeI = float(select("#volumeI").value());
+
+  posterize = select("#posterize").checked();
+  blur = select("#blur").checked();
+  negative = select("#negative").checked();
+}
+
+function filters() {
+  if (posterize == true) {
+    filter(POSTERIZE, 4);
+  }
+
+  if (blur == true) {
+    filter(BLUR, 4);
+  }
+
+  if (negative == true) {
+    filter(INVERT);
+  }
+}
+</script>
+
+</body>
+</html>
